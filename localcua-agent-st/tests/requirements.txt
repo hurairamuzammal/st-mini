@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+apscheduler
+pillow
+pynput
+pygetwindow
+requests
+pyautogui
+pyperclip
+pywin32
+pytest
+pytest-cov
+pytest-timeout
+mutmut
+httpx

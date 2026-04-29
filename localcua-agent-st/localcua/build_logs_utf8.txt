@@ -1,0 +1,151 @@
+﻿Building Windows application...                                 
+flutter : C:\Program 
+Files\Microsoft Visual 
+Studio\18\Community\MSB
+uild\Microsoft\VC\v180\
+Microsoft.CppCommon.tar
+gets(166,5): error 
+MSB3073: The command 
+"setlocal [C:\Extras\Fl
+utter-Projects-Backup\w
+orking\localcua-agent\l
+ocalcua\build\windows\x
+64\INSTALL.vcxproj]
+At line:1 char:1
++ flutter build 
+windows > 
+build_logs.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (C:\Program Fi   
+ le...NSTALL.vcxpro    
+j]:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+C:\Program 
+Files\Microsoft Visual 
+Studio\18\Community\MSB
+uild\Microsoft\VC\v180\
+Microsoft.CppCommon.tar
+gets(166,5): error 
+MSB3073: "C:\Program 
+Files\Microsoft Visual 
+Studio\18\Community\Com
+mon7\IDE\CommonExtensio
+ns\Microsoft\CMake\CMak
+e\bin\cmake.exe" 
+-DBUILD_TYPE=Release 
+-P cmake_install.cmake 
+[C:\Extras\Flutter-Proj
+ects-Backup\working\loc
+alcua-agent\localcua\bu
+ild\windows\x64\INSTALL
+.vcxproj]
+C:\Program 
+Files\Microsoft Visual 
+Studio\18\Community\MSB
+uild\Microsoft\VC\v180\
+Microsoft.CppCommon.tar
+gets(166,5): error 
+MSB3073: if 
+%errorlevel% neq 0 
+goto :cmEnd [C:\Extras\
+Flutter-Projects-Backup
+\working\localcua-agent
+\localcua\build\windows
+\x64\INSTALL.vcxproj]
+C:\Program 
+Files\Microsoft Visual 
+Studio\18\Community\MSB
+uild\Microsoft\VC\v180\
+Microsoft.CppCommon.tar
+gets(166,5): error 
+MSB3073: :cmEnd [C:\Ext
+ras\Flutter-Projects-Ba
+ckup\working\localcua-a
+gent\localcua\build\win
+dows\x64\INSTALL.vcxpro
+j]
+C:\Program 
+Files\Microsoft Visual 
+Studio\18\Community\MSB
+uild\Microsoft\VC\v180\
+Microsoft.CppCommon.tar
+gets(166,5): error 
+MSB3073: endlocal & 
+call :cmErrorLevel 
+%errorlevel% & goto 
+:cmDone [C:\Extras\Flut
+ter-Projects-Backup\wor
+king\localcua-agent\loc
+alcua\build\windows\x64
+\INSTALL.vcxproj]
+C:\Program 
+Files\Microsoft Visual 
+Studio\18\Community\MSB
+uild\Microsoft\VC\v180\
+Microsoft.CppCommon.tar
+gets(166,5): error 
+MSB3073: :cmErrorLevel 
+[C:\Extras\Flutter-Proj
+ects-Backup\working\loc
+alcua-agent\localcua\bu
+ild\windows\x64\INSTALL
+.vcxproj]
+C:\Program 
+Files\Microsoft Visual 
+Studio\18\Community\MSB
+uild\Microsoft\VC\v180\
+Microsoft.CppCommon.tar
+gets(166,5): error 
+MSB3073: exit /b %1 [C:
+\Extras\Flutter-Project
+s-Backup\working\localc
+ua-agent\localcua\build
+\windows\x64\INSTALL.vc
+xproj]
+C:\Program 
+Files\Microsoft Visual 
+Studio\18\Community\MSB
+uild\Microsoft\VC\v180\
+Microsoft.CppCommon.tar
+gets(166,5): error 
+MSB3073: :cmDone [C:\Ex
+tras\Flutter-Projects-B
+ackup\working\localcua-
+agent\localcua\build\wi
+ndows\x64\INSTALL.vcxpr
+oj]
+C:\Program 
+Files\Microsoft Visual 
+Studio\18\Community\MSB
+uild\Microsoft\VC\v180\
+Microsoft.CppCommon.tar
+gets(166,5): error 
+MSB3073: if 
+%errorlevel% neq 0 
+goto :VCEnd [C:\Extras\
+Flutter-Projects-Backup
+\working\localcua-agent
+\localcua\build\windows
+\x64\INSTALL.vcxproj]
+C:\Program 
+Files\Microsoft Visual 
+Studio\18\Community\MSB
+uild\Microsoft\VC\v180\
+Microsoft.CppCommon.tar
+gets(166,5): error 
+MSB3073: :VCEnd" 
+exited with code 1. [C:
+\Extras\Flutter-Project
+s-Backup\working\localc
+ua-agent\localcua\build
+\windows\x64\INSTALL.vc
+xproj]
+Building Windows application...                                    25.8s
+Build process failed.

@@ -1,0 +1,14 @@
+# LocalCUA Agent assets and libraries
+localcua-agent-st/localcua/assets/
+localcua-agent-st/localcua/lib/
+
+# Python caching and environment
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mutmut-cache
+mutants/
+html/
+.venv/
+venv/

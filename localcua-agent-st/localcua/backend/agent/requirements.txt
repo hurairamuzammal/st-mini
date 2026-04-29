@@ -1,0 +1,14 @@
+# GUI Agent — client-side dependencies
+# The VLM server manages its own ML dependencies separately.
+
+# Screen automation
+pyautogui>=0.9.54
+
+# Clipboard-based unicode typing support (optional but recommended)
+pyperclip>=1.9.0
+
+# Screenshot / image handling
+Pillow>=10.0.0
+
+# HTTP client for VLM API calls
+requests>=2.31.0

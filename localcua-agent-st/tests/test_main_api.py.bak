@@ -1,0 +1,72 @@
+import pytest
+from fastapi.testclient import TestClient
+from unittest.mock import patch, MagicMock
+from main import app
+
+# Create a TestClient instance
+client = TestClient(app)
+
+# ═══════════════════════════════════════════════════════════════════
+# API Connectivity Tests
+# ═══════════════════════════════════════════════════════════════════
+
+def test_chat_endpoint():
+    """Verify that the /chat endpoint correctly handles requests."""
+    response = client.post("/chat", json={"message": "Open notepad"})
+    assert response.status_code == 200
+    data = response.json()
+    assert "response" in data
+    assert "steps" in data
+    assert "Analyzing task: Open notepad" in data["response"]
+
+@patch("subprocess.Popen")
+def test_execute_endpoint(mock_popen):
+    """Verify that /execute triggers the agent loop."""
+    # Mock the subprocess
+    mock_process = MagicMock()
+    mock_process.pid = 1234
+    mock_popen.return_value = mock_process
+    
+    response = client.post("/execute", json={"message": "Type hello"})
+    assert response.status_code == 200
+    assert response.json()["status"] == "started"
+    assert response.json()["pid"] == 1234
+
+def test_stop_no_active_process():
+    """Verify /stop handles cases where no agent is running."""
+    response = client.post("/stop")
+    assert response.status_code == 200
+    assert response.json()["status"] == "not_running"
+
+@patch("main.window_pinner")
+def test_pin_status_endpoint(mock_pinner):
+    """Verify the pin status query."""
+    mock_pinner.available = True
+    mock_pinner.is_enabled = False
+    mock_pinner.title = "LocalCUA"
+    
+    response = client.get("/window/pin/status")
+    assert response.status_code == 200
+    assert response.json()["available"] is True
+    assert response.json()["is_pinned"] is False
+
+def test_unpin_without_init():
+    """Verify unpin handles uninitialized state."""
+    with patch("main.window_pinner", None):
+        response = client.post("/window/unpin")
+        assert response.status_code == 200
+        assert response.json()["status"] == "not_pinned"
+
+# ═══════════════════════════════════════════════════════════════════
+# Error Handling Tests
+# ═══════════════════════════════════════════════════════════════════
+
+def test_invalid_json_request():
+    """Ensure the API rejects malformed JSON."""
+    response = client.post("/chat", content="invalid json")
+    assert response.status_code == 422
+
+def test_missing_required_field():
+    """Ensure the API rejects requests missing required Pydantic fields."""
+    response = client.post("/chat", json={}) # Missing 'message'
+    assert response.status_code == 422
