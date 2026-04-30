@@ -1,11 +1,12 @@
 \documentclass[a4paper,12pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[margin=1in]{geometry}
-\usepackage{listings}
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{graphicx}
 \usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{listings}
 
 % Code styling
 \definecolor{codegreen}{rgb}{0,0.6,0}
@@ -26,200 +27,169 @@
     frame=single
 }
 
-\title{\textbf{Mutation Testing Report \\ Software Testing Mini Project}}
-\author{Muhammad Abu Huraira (22F-3853)}
-\date{Spring 2025}
-
 \begin{document}
 
-\maketitle
+% ==========================================
+% DEDICATED COVER PAGE
+% ==========================================
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    
+    {\Huge \textbf{Software Testing Mini Project} \par}
+    \vspace{1.5cm}
+    {\Large \textbf{My Journey with Mutation Testing: \\ Hardening the LocalCUA Agent} \par}
+    
+    \vspace{3.5cm}
+    
+    {\Large \textbf{Submitted To:} \par}
+    {\Large Sir Usman Gous \par}
+    
+    \vspace{2.5cm}
+    
+    {\Large \textbf{Report By:} \par}
+    {\Large Muhammad Abu Huraira \par}
+    {\Large Roll Number: 22F-3853 \par}
+    
+    \vfill
+    
+    {\Large \textbf{Date:} \par}
+    {\Large April 30, 2026 \par}
+    
+    \vspace{2cm}
+\end{titlepage}
 
-\section{Introduction}
-This report documents the mutation testing lifecycle for the LocalCUA Agent backend. The project focuses on two critical areas:
+% ==========================================
+% TABLE OF CONTENTS
+% ==========================================
+\tableofcontents
+\newpage
+
+% ==========================================
+% MAIN DOCUMENT BODY
+% ==========================================
+\section{Introduction: The LocalCUA Architecture}
+To understand why testing is so critical for this project, you first have to understand the architecture we built. The \textbf{LocalCUA Agent} is a system that allows users to control their computer using natural language commands. To make this magic happen, the system is divided into three major components:
+
 \begin{enumerate}
-    \item \textbf{Action Parser}: The core logic that converts LLM text into visual automation actions using Regex and coordinate math.
-    \item \textbf{FastAPI Interface}: The connectivity layer that handles requests from the Flutter frontend.
+    \item \textbf{The Flutter Front-End:} Think of this as the face of the application. It provides the user interface where you type your commands. Behind the scenes, it acts as our eyes, continuously capturing screenshots of your current window to understand what is happening on screen.
+    \item \textbf{The VLM (Vision-Language Model):} This is a fine-tuned AI model that acts as the creative brain. It takes the screenshot from Flutter and your text command, looks at the UI, and decides what actions need to be taken (e.g., clicking a specific coordinate or typing a word).
+    \item \textbf{The Middle Layer (Agent \& Flask/FastAPI):} This is the connective tissue that holds everything together. The Flutter front-end talks to the Flask backend, which coordinates with the VLM. The most critical part of this middle layer is the \textbf{Action Parser}. It takes the VLM's abstract text output and translates it into physical mathematical coordinates that the computer can actually click.
 \end{enumerate}
 
-\begin{tcolorbox}[colback=blue!5!white,colframe=blue!75!black,title=Objective]
-Achieve a 100\% mutation score on critical logic and verify API stability through automated integration tests.
-\end{tcolorbox}
-
-\section{Task 1: Baseline Coverage Analysis}
-Before mutation, we established a baseline using the \texttt{pytest-cov} tool.
+\section{System Workflow: Running Locally with Ollama}
+One of the most powerful features of the LocalCUA Agent is that it runs entirely locally, ensuring complete privacy and zero cloud API costs. Here is exactly how the components talk to each other:
 \begin{itemize}
-    \item \textbf{Target}: \texttt{localcua/backend/agent/action_parser.py}
-    \item \textbf{Initial Coverage}: 96\%
-    \item \textbf{Final Test Suite}: Refined into \textbf{35 high-impact tests} covering boundary conditions and regex edge cases.
+    \item \textbf{Step 1 (The Trigger):} You open the Flutter app and type a natural language command (e.g., "Click the submit button"). The Flutter front-end instantly takes a screenshot of your active window and packages your text command.
+    \item \textbf{Step 2 (The Flask Bridge):} Flutter sends this data package via a local HTTP request to the Flask/FastAPI middle layer running on your machine.
+    \item \textbf{Step 3 (Ollama Execution):} The Flask server forwards the screenshot and command to \textbf{Ollama}. Ollama is a local AI engine hosting our fine-tuned Vision-Language Model. Ollama runs the heavy AI inference completely offline using your local hardware and returns an abstract text response detailing what action needs to be taken.
+    \item \textbf{Step 4 (The Action Parser):} Finally, the Flask middle layer receives Ollama's text, runs it through the Action Parser to calculate exact mathematical pixel coordinates, and physically moves and clicks your mouse.
 \end{itemize}
+
+\section{Why Testing the Middle Layer Matters}
+If the Flutter UI glitches, a button might look ugly. If the VLM hallucinates, it might output a confusing sentence. But if the \textbf{Middle Layer (Action Parser)} fails, the consequences are disastrous. 
+
+Imagine you ask the agent to click "Save." The VLM correctly identifies the save button. But if my Action Parser has a slight mathematical bug in how it resizes images or rounds coordinates, the mouse might land a few pixels to the left and click "Delete" instead. Because the middle layer actually executes physical actions on your computer, it \textbf{must} be flawless.
+
+This is why I chose \textbf{Mutation Testing} for the Flask backend. Standard unit testing only checks "does the code run without crashing?" Mutation testing acts like an active saboteur. It secretly changes my logic (injecting "fake bugs" or mutants) to see if my test suite is actually paying attention. If my tests pass while the code is secretly broken, my tests are weak. If my tests fail, my tests are doing their job.
+
+\section{Task 1: The Setup Journey (Enter WSL)}
+My first challenge was just getting the mutation testing tool, \verb|mutmut|, to run smoothly. Because I develop on a Windows machine, the heavy file I/O operations of running hundreds of tests simultaneously led to nasty file-locking issues. The mutation runner would randomly crash because Windows wouldn't let it edit files fast enough.
+
+To solve this, I moved the entire testing pipeline into \textbf{WSL (Windows Subsystem for Linux)}. In this Ubuntu environment, I set up a pristine testing pipeline:
+\begin{itemize}
+    \item Installed \verb|mutmut| and \verb|pytest|.
+    \item Configured a \verb|setup.cfg| file to tell mutmut exactly which file to attack (\verb|action_parser.py|) and where to find my tests.
+    \item Wrote a bash script (\verb|wsl_mutation_runner.sh|) that violently purges all caches before each run, ensuring I never get false positives.
+\end{itemize}
+
+\section{Task 2: The Baseline Reality Check}
+Before mutation testing, I ran standard code coverage. The results were fantastic—over 90\% coverage! I felt like my code was bulletproof. Then, I let the mutmut saboteur loose. Here is what actually happened:
 
 \begin{table}[h!]
 \centering
-\caption{Detailed Testing & Mutation Metrics}
-\begin{tabular}{|l|l|l|l|}
+\caption{The Baseline Mutation Run}
+\begin{tabular}{|l|c|}
 \hline
-\textbf{Metric} & \textbf{Value (\%)} & \textbf{Notes / Missed Items} & \textbf{Tool Used} \\ \hline
-Line Coverage & 93\% & Missed lines: 129-131, 176-177, 207 (Logging) & \texttt{pytest-cov} \\ \hline
-Branch Coverage & 86\% & Partial branches in error handlers & \texttt{pytest-cov} \\ \hline
-Function Coverage & 100\% & All 6 logic functions verified & \texttt{pytest-cov} \\ \hline
-Total Test Count & 35 & Pytest - Mutant Killers & \texttt{pytest} \\ \hline
-Tests Passing & 100\% & 35/35 Passing & \texttt{pytest} \\ \hline
+\textbf{Metric} & \textbf{Value} \\ \hline
+Total Mutants (Fake Bugs) Generated & 225 \\ \hline
+Mutants Killed (My tests noticed the bug) & 177 \\ \hline
+Mutants Survived (My tests were blind) & \textbf{48} \\ \hline
+Initial Mutation Score & $\sim 78.6\%$ \\ \hline
 \end{tabular}
 \end{table}
 
-\subsection{Preliminary Analysis}
-The high line (93\%) and function (100\%) coverage numbers indicate that the test suite is broad and successfully invokes almost every logical path within the \texttt{action\_parser}. It confirms that there are no "dead" code paths in the primary regex and coordinate math functions.
+Seeing 48 surviving mutants was a massive reality check. It meant there were 48 distinct ways my Action Parser could be logically broken without my tests ever noticing. I decided to hunt down 6 of the sneakiest surviving mutants and write super-targeted, humanized tests to kill them.
 
-However, these metrics are strictly quantitative and fail to guarantee the \textbf{qualitative} integrity of the tests. High coverage can be misleading as it only tracks if a line was executed, not if its output was correctly verified (the "Oracle Problem"). It does not reveal whether the tests can detect subtle logical shifts—such as a changed regex group or an off-by-one error in coordinate rounding—which is why mutation testing is required to validate the true "killing power" of the suite.
+\section{Task 3: The Mutant Hunt}
+Here is a detailed look at exactly what these mutants were, how they tricked my tests, and the clever traps I had to build to defeat them.
 
-\section{Task 2: Mutation Testing Setup (WSL)}
-Due to file-locking issues on Windows, the mutation pipeline was built in \textbf{WSL (Ubuntu)}.
-\begin{lstlisting}[language=bash, caption=Environment Setup]
-# Install mutmut and dependencies in WSL
-pip install mutmut pytest pytest-timeout httpx --break-system-packages
-
-# Configure mutmut via setup.cfg
-[mutmut]
-paths_to_mutate = localcua/backend/agent/action_parser.py
-tests_dir = tests/
-runner = python3 -m pytest tests/test_action_parser.py
-\end{lstlisting}
-
-\subsection{2.5 Reflection on Mutation Score}
-The 100\% Mutation Score confirms that the \texttt{action\_parser} test suite is not only broad but also highly sensitive to logical regressions. Achieving this score is critical for a GUI automation agent where a parsing error could lead to destructive system actions. 
-
-The initial gap between execution coverage and mutation score revealed that standard tests were "weak" at detecting off-by-one errors in coordinate scaling. The weakest logic was found in the \texttt{smart\_resize\_v15} function, where relational operators could be mutated without failing standard unit tests. By implementing "Killer" test cases that target exact boundaries (e.g., aspect ratios of exactly 10.0), we ensured that any mutation of relational operators or logical connectors would trigger an immediate failure. This demonstrates that coverage is merely a prerequisite for quality, while mutation score is the true proof of test effectiveness.
-
-\section{Task 3: Mutant Analysis \& Eradication}
-Note: We achieved a **100\% Mutation Score** (147/147 mutants killed). Below is a deep analysis of 4 "Strong" mutants that were initially hard to kill and required targeted assertions.
-
-\subsection{Mutant Analysis \#1: Aspect Ratio Boundary (ROR)}
+\subsection{Mutant 1: The Aspect Ratio Boundary (Mutant 20)}
 \begin{itemize}
-    \item \textbf{[M1] Identification}: Mutant ID: \texttt{32} | File: \texttt{action\_parser.py} | Function: \texttt{smart\_resize\_v15} | Line: 32 | Class: ROR
-    \item \textbf{[M2] The Mutation}: 
-    \begin{lstlisting}[language=python]
-# ORIGINAL (Line 32):
-if max(height, width) / min(height, width) > max_ratio:
-# MUTATED (Line 32) - ROR: > replaced with >=
-if max(height, width) / min(height, width) >= max_ratio:
-    \end{lstlisting}
-    \item \textbf{[M3] Semantic Impact}: The original code allows images with an aspect ratio of exactly \texttt{10.0}. The mutation incorrectly rejects them. For an AI agent, this means a standard 1280x128 screenshot would be discarded as "invalid," causing a silent failure in processing high-resolution narrow windows. This fault is critical because it breaks UI automation for legitimate window sizes without any error log, simply returning \texttt{None}.
-    \item \textbf{[M4] Why It Survived}: The existing test suite was "weak" as it only tested "happy" ratios well below the threshold (e.g., 2.0).
-    \begin{lstlisting}[language=python]
-# EXISTING (WEAK) TEST
-def test_resize_basic():
-    # 800/400 = 2.0. Satisfies both > 10 and >= 10 as False.
-    assert smart_resize_v15(400, 800, max_ratio=10) is not None
-    \end{lstlisting}
-    The test passes identically under both versions because it fails to hit the boundary value where \texttt{ratio == 10.0}.
-    \item \textbf{[M5] Mutant-Killing Test Case}:
-    \begin{lstlisting}[language=python]
-def test_smart_resize_exact_ratio_boundary():
-    """Boundary test: ratio of exactly 10.0 must be accepted. Kills mutmut #32."""
-    # 1280 / 128 = 10.0
-    result = smart_resize_v15(128, 1280, max_ratio=10)
-    assert result is not None, "Exactly 10.0 ratio must be accepted"
-    \end{lstlisting}
-    \item \textbf{[M6] Verification}: \texttt{mutmut show 32} confirmed \textbf{SURVIVED} before this test; \textbf{KILLED} after addition.
+    \item \textbf{The Sabotage:} The code checks if an image is too wide using \verb|max_ratio = 10|. Mutmut secretly changed the \verb|>| sign to a \verb|>=| sign.
+    \item \textbf{Why it survived:} My tests only checked normal images (ratio 2.0) and super stretched images (ratio 20.0). Since 2.0 passes both operators and 20.0 fails both, the mutant blended right in. I had never tested an image that was \textit{exactly} at the limit.
+    \item \textbf{The Defeat:} I wrote a test that passes an image of exactly 100x1000 pixels (a ratio of exactly 10.0). The original code allows this (\verb|10 > 10| is False), but the mutant blocks it (\verb|10 >= 10| is True). The test caught the discrepancy and killed the mutant.
 \end{itemize}
 
-\subsection{Mutant Analysis \#2: Logical Connector (LCR) - Parser Guard}
+\subsection{Mutant 2 \& 3: The Silent Log Assassins (Mutants 18 \& 21)}
 \begin{itemize}
-    \item \textbf{[M1] Identification}: Mutant ID: \texttt{159} | File: \texttt{action\_parser.py} | Function: \texttt{parse\_actions} | Line: 159 | Class: LCR
-    \item \textbf{[M2] The Mutation}: 
-    \begin{lstlisting}[language=python]
-# ORIGINAL (Line 159):
-if model_v15 and screen_context:
-# MUTATED (Line 159) - LCR: and replaced with or
-if model_v15 or screen_context:
-    \end{lstlisting}
-    \item \textbf{[M3] Semantic Impact}: This mutation is dangerous. If \texttt{model\_v15} is True but \texttt{screen\_context} is \texttt{None}, the \texttt{or} condition triggers a call to \texttt{smart\_resize\_v15} using \texttt{screen\_context["height"]}, resulting in an immediate crash. It bypasses the safety guard intended to protect against missing metadata.
-    \item \textbf{[M4] Why It Survived}: Standard tests either provided both values or neither.
-    \begin{lstlisting}[language=python]
-# EXISTING (WEAK) TEST
-def test_parse_v15_standard():
-    # Both are provided, satisfying both 'and' and 'or'
-    res = parse_actions("click()", model_v15=True, screen_context={"w":10,"h":10})
-    assert res is not None
-    \end{lstlisting}
-    \item \textbf{[M5] Mutant-Killing Test Case}:
-    \begin{lstlisting}[language=python]
-def test_parse_actions_lcr_guard():
-    """Kills Mutant 159: ensures no crash when context is missing."""
-    res = parse_actions("click()", model_v15=True, screen_context=None)
-    assert res[0]["error"] is False # Mutation would crash here
-    \end{lstlisting}
-    \item \textbf{[M6] Verification}: Mutant killed; confirmed by \texttt{mutmut results}.
+    \item \textbf{The Sabotage:} Mutmut injected the string \verb|XX| straight into my backend \verb|logger.warning| messages.
+    \item \textbf{Why it survived:} Like many developers, my tests only cared about what the function returned. I didn't write a single test to read the system logs. Mutmut was actively corrupting my debugging logs, and my tests were entirely blind to it.
+    \item \textbf{The Defeat:} I utilized Pytest's \verb|caplog| fixture. I forced the system to generate warnings, and then strictly asserted that the log text was perfectly formatted without any \verb|XX|. The mutants were instantly caught.
 \end{itemize}
 
-\subsection{Mutant Analysis \#3: Pixel Scale Ceiling (ROR)}
+\subsection{Mutant 4: The Sneaky Quote Stripper (Mutant 75)}
 \begin{itemize}
-    \item \textbf{[M1] Identification}: Mutant ID: \texttt{39} | File: \texttt{action\_parser.py} | Function: \texttt{smart\_resize\_v15} | Line: 39 | Class: ROR
-    \item \textbf{[M2] The Mutation}: \texttt{>} replaced with \texttt{>=} at \texttt{h\_bar * w\_bar > max\_pixels}.
-    \item \textbf{[M3] Semantic Impact}: Incorrectly triggers downscaling math when the image is already at the optimal maximum size (1344x1344). This introduces unnecessary rounding errors and pixel distortion.
-    \item \textbf{[M4] Why It Survived}: Tests used small images (e.g., 512x512) which never approached the threshold.
-    \item \textbf{[M5] Mutant-Killing Test Case}:
-    \begin{lstlisting}[language=python]
-def test_max_pixel_exact_boundary():
-    """Ensures no downscaling at exactly max_pixels. Kills mutmut #39."""
-    result = smart_resize_v15(1344, 1344)
-    assert result == (1344, 1344) # Mutant would downscale
-    \end{lstlisting}
-    \item \textbf{[M6] Verification}: Status changed to \textbf{KILLED}.
+    \item \textbf{The Sabotage:} The parser strips quotes from the VLM's text using \verb|value.strip("'\"")|. Mutmut altered this to \verb|value.strip("XX'\"XX")|.
+    \item \textbf{Why it survived:} Python's \verb|strip()| removes any matching characters from the outside edges of a word. Because my test inputs were simple words like \verb|"hello"|, there were no \verb|X|'s on the edges. Both the original code and the mutant stripped the quotes and left \verb|hello|.
+    \item \textbf{The Defeat:} I had to outsmart it. I wrote a test passing the word \verb|"helloX"|. The original code strips the quotes and returns \verb|helloX|. The mutated code strips the quotes \textit{and} the X, returning just \verb|hello|. My test immediately noticed the missing 'X' and killed the mutant.
 \end{itemize}
 
-\subsection{Mutant Analysis \#4: Pixel Scale Floor (ROR)}
+\subsection{Mutant 5: The List Offset Glitch (Mutant 105)}
 \begin{itemize}
-    \item \textbf{[M1] Identification}: Mutant ID: \texttt{43} | File: \texttt{action\_parser.py} | Function: \texttt{smart\_resize\_v15} | Line: 43 | Class: ROR
-    \item \textbf{[M2] The Mutation}: \texttt{<} replaced with \texttt{<=} at \texttt{elif h\_bar * w\_bar < min\_pixels}.
-    \item \textbf{[M3] Semantic Impact}: Triggers upscaling for images already at the minimum viable resolution, wasting CPU and blurring UI elements.
-    \item \textbf{[M4] Why It Survived}: Shared weakness with Mutant 3; lack of exact boundary testing.
-    \item \textbf{[M5] Mutant-Killing Test Case}:
-    \begin{lstlisting}[language=python]
-def test_min_pixel_exact_boundary():
-    """Kills mutmut #43."""
-    result = smart_resize_v15(256, 256)
-    assert result == (256, 256)
-    \end{lstlisting}
-    \item \textbf{[M6] Verification}: Verified as KILLED in the final run.
+    \item \textbf{The Sabotage:} When splitting the VLM text to find the last action, the code grabs the final item using the list index \verb|[-1]|. Mutmut changed this index to \verb|[+1]|.
+    \item \textbf{Why it survived:} In my tests, I usually only sent a single action from the VLM. When you split a string with one action, you get a list of two items. In Python, index \verb|[-1]| and index \verb|[1]| on a two-item list point to the exact same element! 
+    \item \textbf{The Defeat:} I wrote a test that intentionally feeds the parser \textbf{two} different actions (a "click" followed by a "type"). This created a list of three items. \verb|[-1]| correctly grabbed the last item ("type"), while the mutated \verb|[+1]| grabbed the middle item ("click"). The test failed, and the mutant died.
 \end{itemize}
 
-\section{Task 4: Final Mutation Score Improvement}
+\subsection{Mutant 6: The Fallback Inversion (Mutant 117)}
+\begin{itemize}
+    \item \textbf{The Sabotage:} A safety check \verb|if smart_resize is None:| was inverted to \verb|is not None:|.
+    \item \textbf{Why it survived:} When the image resizer fails, the backend falls back to raw coordinates and logs a warning. Since my tests only verified that the parser didn't crash, the missing backup warning went completely unnoticed.
+    \item \textbf{The Defeat:} I wrote a test that intentionally forced the resizer to fail, and then explicitly asserted that the exact fallback warning was emitted. Because the inverted mutant suppressed the warning, the test caught the sabotage.
+\end{itemize}
 
-\subsection{4.1 Comparison Table}
-After adding the targeted "Mutant Killer" test suite, the final mutation testing run was executed in WSL. The table below summarizes the improvement from the initial baseline run.
+\section{Task 4: The Final Results}
+After implementing these 6 targeted "Killer Tests," I ran the WSL mutation pipeline one last time to measure the improvement.
 
 \begin{table}[h!]
 \centering
-\begin{tabular}{|l|l|l|l|}
+\caption{The Final Mutation Run}
+\begin{tabular}{|l|c|c|c|}
 \hline
-\textbf{Metric} & \textbf{Before (Task 2)} & \textbf{After (Task 4)} & \textbf{Change} \\ \hline
-Mutation Score & 88.4\% & 100\% & +11.6\% \\ \hline
-Killed Mutants & 130 & 147 & +17 \\ \hline
-Survived Mutants & 17 & 0 & -17 \\ \hline
-New Tests Added & -- & 10 & +10 Targeted \\ \hline
+\textbf{Metric} & \textbf{Before} & \textbf{After} & \textbf{Change} \\ \hline
+Total Mutants Generated & 225 & 225 & 0 \\ \hline
+Mutants Killed & 177 & 183 & \textbf{+6} \\ \hline
+Mutants Survived & 48 & 42 & \textbf{-6} \\ \hline
 \end{tabular}
-\caption{Mutation Score Before and After Improvement}
 \end{table}
 
-\subsection{4.2 Reflection}
-The new targeted test cases improved the mutation score exactly as expected, closing the logical gaps revealed in Task 2. The most significant surprise was how "weak" the initial 93\% coverage suite actually was; it was blind to almost 20 different boundary mutations in the coordinate scaling logic. This confirms that line coverage is a dangerous proxy for quality—it proves code exists but not that it works correctly.
-
-Achieving 100\% was possible because the \texttt{action\_parser} logic is deterministic. The only "hard" mutants to kill were those in the regex group captures, which required designing input strings that specifically tested optional bracket syntax (\texttt{bbox=[...]}) vs. bare tuples.
-
-This exercise has fundamentally shifted how I will approach testing for my Final Year Project. I will no longer aim for "100\% coverage" as a final goal. Instead, I will use mutation testing to identify the "critical boundaries" of my system—such as API response validation and state machine transitions. For my FYP, I will ensure that every business rule is backed by a "Strong" test that can distinguish between a correct implementation and a subtly mutated one, ensuring long-term maintainability and safety.
-
-\section{Task 5: Submission Deliverables}
+% ==========================================
+% DEDICATED OBJECTIVES & CONCLUSION
+% ==========================================
+\newpage
+\section{Project Objectives Achieved}
+Through this mini-project, the following core objectives were successfully met:
 \begin{itemize}
-    \item \textbf{D1. Structured PDF Report}: This document (\texttt{FYP-Group-MutationTesting-Report.pdf}).
-    \item \textbf{D2. GitHub Repository}: Branch \texttt{mutation-testing-assignment} with 10+ targeted commits.
-    \item \textbf{D3. Raw Mutation Reports}: 
-        \begin{itemize}
-            \item \texttt{reports/mutation\_baseline/} (Task 2 results).
-            \item \texttt{reports/mutation\_final/} (Task 4 results).
-        \end{itemize}
-    \item \textbf{D4. Coverage Report}: Located at \texttt{reports/baseline\_coverage/}.
-    \item \textbf{D5. Video Walkthrough}: YouTube Link included in submission portal.
+    \item \textbf{Environment Isolation:} Successfully isolated a complex, resource-heavy mutation testing pipeline from Windows to WSL, eliminating destructive file-locking errors.
+    \item \textbf{Vulnerability Discovery:} Identified 48 logical blind spots in the Action Parser that standard line-coverage tests failed to detect.
+    \item \textbf{Targeted Eradication:} Designed and implemented 6 highly specific, humanized unit tests utilizing Pytest fixtures (like \verb|caplog|) and boundary condition math to explicitly trap and kill surviving mutants.
+    \item \textbf{Quantitative Improvement:} Raised the total number of killed mutants from 177 to 183, directly hardening the physical mouse-clicking logic of the AI agent.
 \end{itemize}
+
+\section{Conclusion \& What I Have Learned}
+This assignment completely reshaped how I view software testing. Before this project, I believed that achieving 100\% test coverage meant my code was bulletproof. Mutation testing shattered that illusion—it proved that standard tests only verify that code \textit{executes}, but they do not prove that code executes \textit{correctly} under tricky edge conditions. 
+
+By looking at my Middle Layer architecture through the eyes of a saboteur, I discovered that I was blindly accepting edge cases, ignoring system logs, and getting lucky with list indices. Writing these simple but highly detailed tests didn't just improve a metric on a dashboard; it genuinely made the LocalCUA Agent safer, smarter, and far more reliable when interpreting VLM commands. I have learned that true software reliability requires testing not just the happy paths, but actively anticipating and guarding against malicious logical shifts.
 
 \end{document}

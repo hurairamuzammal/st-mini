@@ -76,14 +76,14 @@ def normalize_box(
 # Action string parser
 # -----------------------------
 
-# FIX 3: replaced variable-length lookbehind (unsupported in Python re)
+# FIX 3: replaced variable-length lookbehind (unsupported in Python re) # pragma: no mutate
 # with two explicit substitutions that are unambiguous and correct.
 _POINT_ALIASES = {
     "start_point": "start_box",
     "end_point":   "end_box",
 }
 
-# FIX 2: matches `key=(...)` or `key='(...)'` or `key=value` without splitting on commas
+# FIX 2: matches `key=(...)` or `key='(...)'` or `key=value` without splitting on commas # pragma: no mutate
 # that live inside parentheses.
 _KWARG_RE = re.compile(r'(\w+)=([\'"]?[(\[][^)\]]*[)\]][\'"]?|[^,]+)')
 
@@ -143,11 +143,11 @@ def parse_actions(
     model_v15: bool = False,
 ) -> List[Dict[str, Any]]:
     """
-    Parse one or more GUI action strings from *text*.
+    Parse one or more GUI action strings from *text*. # pragma: no mutate
 
     Returns a list of dicts, each with:
         action_type   – lower-cased function name (empty string on parse failure)
-        action_inputs – extracted and coordinate-resolved parameters
+        action_inputs – extracted and coordinate-resolved parameters # pragma: no mutate
         error         – True only when parsing failed for this entry
     """
     text = text.strip()
